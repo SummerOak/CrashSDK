@@ -14,6 +14,8 @@ namespace vpnlib{
 	void hex2bytes(const char *hex, uint8_t *out);
 	int compare_u32(uint32_t s1,uint32_t s2);
 
+	void printMem(uint32_t s, uint32_t e);
+
 	int getUID(uint8_t version, uint8_t protocol, void *saddr,  uint16_t sport,  void *daddr, uint16_t dport);
 	
 }

@@ -1,5 +1,8 @@
 #include "Utils.h"
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "Log.h"
 #include "Defines.h"
 
 template <typename T>
@@ -40,3 +43,11 @@ void vpnlib::hex2bytes(const char *hex, uint8_t *out) {
     return;
 }
 
+void vpnlib::printMem(uint32_t s, uint32_t e){
+	while(s <= e){
+
+		LOGE(PTAG(""), "%x: %08x", s, *(uint32_t*)s);
+
+		s += 4;
+	}
+}

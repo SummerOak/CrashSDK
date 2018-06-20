@@ -119,12 +119,11 @@ int Exidx::retriveEntry(Context& context, word_t s, word_t e){
 	}
 
 	if (ip >= val){
+		LOGE(TAG,"ip exceed exidx range.");
 		entry = last;
-
 		if (prel31_to_addr (last, &cfi.start_ip) < 0){
 			return -1;
 		}
-
 		--cfi.end_ip;
 	} else {
 		while (first < last - 8){
@@ -180,7 +179,7 @@ int Exidx::readUnwindInstr(Context& context, word_t entry, uint8_t* instr){
 		LOGE (TAG, "ARM_EXIDX_CANT_UNWIND(%x)", data);
 		nbuf = -1;
 	} else if (data & ARM_EXIDX_COMPACT){
-		LOGD (TAG, "%p compact model %d [%8.8x]", (void *)addr, (data >> 24) & 0x7f, data);
+		LOGD (TAG, "%p compact model %d [0x%x]", (void *)addr, (data >> 24) & 0x7f, data);
 		instr[nbuf++] = data >> 16;
 		instr[nbuf++] = data >> 8;
 		instr[nbuf++] = data;
@@ -385,7 +384,7 @@ int Exidx::applyInstr(arm_exbuf_data& edata, CFI& cfi){
 			break;
 		case ARM_EXIDX_CMD_REG_POP:
 			for (i = 0; i < 16; i++) if (edata.data & (1 << i)) {
-				LOGD(TAG, "pop {r%d}, 0x%lx", i, cfi.cfa);
+				LOGD(TAG, "pop {r%d}, 0x%lx", i, *(word_t*)cfi.cfa);
 				cfi.loc[UNW_ARM_R0 + i] = *(word_t*)cfi.cfa;
 				cfi.cfa += 4;
 			}

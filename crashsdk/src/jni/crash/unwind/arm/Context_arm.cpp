@@ -1,5 +1,6 @@
 #include "Context_arm.h"
 #include "Log.h"
+#include "Utils.h"
 #include <asm/sigcontext.h>
 
 const char* Context_arm::TAG = PTAG("Context_arm");
@@ -87,6 +88,12 @@ int Context_arm::restoreFrame(){
 
 	if(ip == mCfi.ip && cfa == mCfi.cfa){
 		mCfi.root = 1;
+
+
+		vpnlib::printMem(cfa, cfa + (50<<2));
+
+	}else{
+		vpnlib::printMem(cfa, mCfi.cfa);
 	}
 
 
