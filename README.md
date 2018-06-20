@@ -2,7 +2,7 @@
 
   Capture crash in Java & Native(arm/x86), and dump crash information to a file locate in sdcard, crash information contains call stack, system version, architecture, and registers state for native crash.
   
-# Structure of this Project
+# Structure of this project
   
   This is an Android project create by Android studio, the module 'crashsdk' is an aar lib and that is what we need implememt&optimize; 
   
@@ -16,4 +16,4 @@
     1) parse registers state when crash occur,
     2) unwind call stack;
     3) write crash information to file;
-    Since we are doing these in a signal handler, we should consider signal safety;
+    Since we are do these in a signal handler, we should take signal safety into consideration.
