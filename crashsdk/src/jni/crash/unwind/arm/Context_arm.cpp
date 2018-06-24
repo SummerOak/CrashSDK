@@ -1,6 +1,7 @@
 #include "Context_arm.h"
 #include "Log.h"
 #include "Utils.h"
+#include "EHFrame.h"
 #include <asm/sigcontext.h>
 
 const char* Context_arm::TAG = PTAG("Context_arm");
@@ -68,6 +69,25 @@ word_t Context_arm::getReg(uint32_t reg){
 	return 0;
 }
 
+void Context_arm::adjustIP(word_t& ip){
+	if (ip){
+		int adjust = 4;
+		if (ip & 1){
+			/* Thumb instructions, the currently executing instruction could be
+			* 2 or 4 bytes, so adjust appropriately.
+			*/
+
+			word_t addr = ip - 5;
+			word_t value;
+			if (ip < 5 || readW(&addr, &value) < 0 || (value & 0xe000f000) != 0xe000f000){
+				adjust = 2;
+			}
+		}
+
+		ip -= adjust;
+	}
+}
+
 int Context_arm::restoreFrame(){
 	if(rootFrame()){
 		LOGE(TAG,"restoreFrame failed , it's root frame.");
@@ -79,30 +99,40 @@ int Context_arm::restoreFrame(){
 
 	word_t ip = mCfi.ip;
 	word_t cfa = mCfi.cfa;
-	if((ret = Exidx::restoreFrame(*this)) != 0){
-		LOGE(TAG,"restoreFrame(0x%lx) from exidx failed, try call routine.", (long)mCfi.ip)
-		if((ret = stepBack(mCfi)) != 0){
-			LOGE(TAG,"try call routine failed.");
+
+	if((ret = EHFrame::restoreFrame(*this)) != 0){
+		LOGE(TAG,"eh_frame parse failed.");
+
+		if((ret = Exidx::restoreFrame(*this)) != 0){
+			LOGE(TAG,"restoreFrame(0x%lx) from exidx failed, try call routine.", (long)mCfi.ip);
+			if((ret = stepBack(mCfi)) != 0){
+				LOGE(TAG,"try call routine failed.");
+				return ret;
+			}
 		}
 	}
 
+	adjustIP(mCfi.ip);
+
 	if(ip == mCfi.ip && cfa == mCfi.cfa){
+		LOGE(TAG,"reach root, stop here.");
 		mCfi.root = 1;
-
-
 		vpnlib::printMem(cfa, cfa + (50<<2));
 
 	}else{
 		vpnlib::printMem(cfa, mCfi.cfa);
 	}
 
+	mCfi.loc[UNW_ARM_R13] = mCfi.cfa;
 
 	return ret;
 
 }
 
 int Context_arm::stepBack(CFI& cfi){
+
 	cfi.ip = cfi.loc[UNW_ARM_R15] = cfi.loc[UNW_ARM_R14]; //set pc to last frame
+
 	LOGD(TAG,"stepBack ip(0x%lx)", cfi.ip);
 	return 0;
 }

@@ -49,7 +49,7 @@ int Unwind::unwind(UnwindNode** head){
 	UnwindNode* tail = NULL;
 	uint8_t deep = 0;
 	bool skiped = false;
-	while(MAX_STACK_DEEP > deep++){
+	while(MAX_STACK_DEEP > deep){
 		if(mContext->rootFrame()){
 			LOGE(TAG,"end of call stack.");
 			break;
@@ -75,6 +75,7 @@ int Unwind::unwind(UnwindNode** head){
 			LOGD(TAG,"\t#%02d pc(0x%08x) ip(%p) cfa(0x%p) %s", 
 				deep, node->pc, mContext->getIP(), mContext->getCFA(), mContext->rootFrame()?"root":"");
 
+			++deep;
 			continue;
 		}
 
@@ -93,36 +94,6 @@ void Unwind::printNode(UnwindNode& node){
 		LOGR(TAG,"\t#%02d pc 0x%016lx\t%s(%s)", 0, node.pc, node.libname, node.signame);
 		break;
 	}
-}
-
-void Unwind::printMem(word_t s,word_t t){
-	LOGD(TAG,"mem from 0x%lx - 0x%lx:", (long)s,(long)t);
-
-	while(s <= t){
-		word_t ss = (s+3)&(~3);
-		if(ss == s){
-			ss = s+4;
-		}
-		switch(ss-s){
-			case 1:
-			LOGD(TAG,"0x%lx: %02x%02x%02x%02x",s,*(uint8_t*)(s),0,0,0);
-			break;
-			case 2:
-			LOGD(TAG,"0x%lx: %02x%02x%02x%02x",s,*(uint8_t*)(s+1), *(uint8_t*)(s), 0,0);
-			break;
-			case 3:
-			LOGD(TAG,"0x%lx: %02x%02x%02x%02x",s,*(uint8_t*)(s+2),*(uint8_t*)(s+1),*(uint8_t*)(s),0);
-			break;
-			case 4:
-			LOGD(TAG,"0x%lx: %02x%02x%02x%02x",s,*(uint8_t*)(s+3),*(uint8_t*)(s+2),*(uint8_t*)(s+1),*(uint8_t*)(s));
-			break;
-			default:
-			break;
-		}
-
-		s = ss;
-	}
-
 }
 
 

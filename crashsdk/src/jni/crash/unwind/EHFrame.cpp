@@ -162,6 +162,8 @@ int EHFrame::checklib (struct dl_phdr_info *info, size_t size, void *ptr){
 			return -1;
 		}
 
+		LOGD(TAG,"findEntry: e->start_ip_offset(%d), relIP(%d)", entry->start_ip_offset, relIP);
+
 		word_t fde_addr = entry->fde_offset + segbase;
 		if(extractCFI(context, &fde_addr) == 0){
 			LOGD(TAG,"find cfi success, ip(0x%x - 0x%x), cie_instr(0x%x - 0x%x), fde_instr(0x%x - 0x%x)", 
@@ -182,11 +184,22 @@ table_entry* EHFrame::findEntry(table_entry* start, uint64_t size, int32_t rel_i
 	struct table_entry *e = NULL;
 	uint64_t lo, hi, mid;
 
+	// int last = 0;
+	// for(int i=0;i<size;i++){
+	// 	int off = (start+i)->start_ip_offset;
+	// 	int r = last == 0? 0:(off-last);
+	// 	last = off;
+
+	// 	LOGD(TAG,"findEntry %d: %d, %d", i, off, r);
+	// }
+
 	/* do a binary search for right entry: */
 	for (lo = 0, hi = size; lo < hi;){
 		mid = (lo + hi) / 2;
 		e = start + mid;
-		// LOGD(TAG, "e->start_ip_offset = 0x%lx\n", (long) e->start_ip_offset);
+		// LOGD(TAG, "findEntry: lo(%d) mid(%d) hi(%d) relIP(%d), lo(%llu) hi(%llu) mid(%llu)", 
+		// 	(start+lo)->start_ip_offset, e->start_ip_offset, (start+hi)->start_ip_offset,
+		//  	rel_ip, lo, hi, mid);
 		if (rel_ip < e->start_ip_offset){
 			hi = mid;
 		}else{
@@ -489,6 +502,11 @@ int EHFrame::extractCFI(Context& context, word_t* addrp){
 
 	LOGD(TAG,"FDE covers IP 0x%lx-0x%lx, LSDA=0x%lx\n", (long) cfi.start_ip, (long) cfi.end_ip, (long) cfi.lsda);
 
+	if(cfi.ip < cfi.start_ip || cfi.ip >= cfi.end_ip){
+		LOGE(TAG,"ip not fall in FDE");
+		return -1;
+	}
+
 	if (cfi.have_abi_marker){
 		if ((ret = context.readU16 (&addr, &cfi.abi)) < 0
 		|| (ret = context.readU16 (&addr, &cfi.tag)) < 0){
@@ -527,7 +545,10 @@ int EHFrame::applyInstr(Context& context, CFI& cfi){
 		if ((rs->reg[DWARF_CFA_REG_COLUMN].val == UNW_TDEP_SP)
 			&& (UNW_TDEP_SP < ARRAY_SIZE(rs->reg))
 			&& (rs->reg[UNW_TDEP_SP].where == DWARF_WHERE_SAME)){
-			LOGE(TAG,"same cfa!");
+
+			cfi.cfa += (rs->reg[DWARF_CFA_OFF_COLUMN].val);
+			
+			// return -1;
 		} else {
 			word_t dwarfReg = rs->reg[DWARF_CFA_REG_COLUMN].val;
 			if(dwarfReg >= DWARF_NUM_PRESERVED_REGS){
@@ -538,6 +559,11 @@ int EHFrame::applyInstr(Context& context, CFI& cfi){
 			cfi.cfa = cfi.loc[dwarfReg] + (rs->reg[DWARF_CFA_OFF_COLUMN].val);
 			LOGD(TAG,"new cfa = 0x%lx, loc[%d] + offset(%d)", (long)cfi.cfa, dwarfReg, (rs->reg[DWARF_CFA_OFF_COLUMN].val));
 		}
+
+		if(cfi.cfa == old_cfa){
+			LOGE(TAG,"same cfa!");
+		}
+
 	} else {
 		/* CFA is equal to EXPR: */
 		if(rs->reg[DWARF_CFA_REG_COLUMN].where != DWARF_WHERE_EXPR){
@@ -602,16 +628,18 @@ int EHFrame::applyInstr(Context& context, CFI& cfi){
 	LOGD(TAG,"ret_addr_column = %d", cfi.ret_addr_column);
 	/* DWARF spec says undefined return address location means end of stack. */
 	if (cfi.ret_addr_column < DWARF_NUM_PRESERVED_REGS) {
-		cfi.ip = cfi.loc[cfi.ret_addr_column] - 1;
+		cfi.ip = cfi.loc[cfi.ret_addr_column];
 	}
 
 	LOGD(TAG,"after apply ip(0x%lx) old ip(0x%lx) cfa(0x%lx) old cfa(0x%lx) ",
 		(long)cfi.ip, (long)old_ip, (long)cfi.cfa, (long) old_cfa);
 
-	/* XXX: check for ip to be code_aligned */
-	if (cfi.ip == old_ip && cfi.cfa == old_cfa){
-		cfi.root = 1;
-		LOGE(TAG, "ip and cfa unchanged; stopping here (ip=0x%lx)", (long) cfi.ip);
+	if(cfi.cfa == old_cfa){
+		/* XXX: check for ip to be code_aligned */
+		if (cfi.ip == old_ip){
+			cfi.root = 1;
+			LOGE(TAG, "ip and cfa unchanged; stopping here (ip=0x%lx)", (long) cfi.ip);
+		}
 	}
 
 	return 0;

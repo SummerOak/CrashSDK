@@ -80,12 +80,13 @@ int DWInstruction::runCFIInstructions(Context& context, CFI& cfi, word_t ip, wor
 			return ret;
 		}
 
+		uint8_t oop = op;
 		if (op & DWARF_CFA_OPCODE_MASK){
 			operand = op & DWARF_CFA_OPERAND_MASK;
 			op &= ~DWARF_CFA_OPERAND_MASK;
 		}
 
-		LOGD(TAG,"excute op(%x)", op);
+		LOGD(TAG,"excute (%x) op(%x) operand(%x)", oop, op, operand);
 
 		switch ((dwarf_cfa_t) op){
 			case DW_CFA_advance_loc:

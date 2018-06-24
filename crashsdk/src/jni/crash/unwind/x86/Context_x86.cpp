@@ -80,6 +80,7 @@ int Context_x86::restoreFrame(){
 		}
 	}
 
+	--mCfi.ip;
 	mCfi.loc[ESP] = mCfi.cfa;
 
 	return ret;

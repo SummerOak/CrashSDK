@@ -2,7 +2,6 @@ package com.summer.crashsdk;
 
 import android.content.Context;
 import android.os.Build;
-import android.util.Log;
 
 import java.io.File;
 
@@ -13,18 +12,23 @@ public final class CrashSDK {
     public static final int init(Context context){
         System.loadLibrary("crashsdk");
 
-        String abi = "";
+        StringBuilder abi = new StringBuilder();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            boolean first = true;
             for(String s:Build.SUPPORTED_ABIS){
-                abi += s;
+                if(!first){
+                    abi.append(" ");
+                }
+                abi.append(s);
+
+                first = false;
             }
         }else{
-            abi = Build.CPU_ABI;
+            abi.append(Build.CPU_ABI);
         }
 
-        setSystemInfo(Build.FINGERPRINT, Build.VERSION.SDK_INT, abi);
-        Log.e("cqx_ttt","sdk int: " + Build.VERSION.SDK_INT + " abi: " + abi);
+        setSystemInfo(Build.FINGERPRINT, Build.VERSION.SDK_INT, abi.toString());
 
         File files = context.getExternalFilesDir(null);
         File dir = new File(files.getAbsolutePath() + File.separator + "tombstones");

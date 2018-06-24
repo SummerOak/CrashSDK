@@ -45,9 +45,7 @@ void vpnlib::hex2bytes(const char *hex, uint8_t *out) {
 
 void vpnlib::printMem(uint32_t s, uint32_t e){
 	while(s <= e){
-
-		LOGE(PTAG(""), "%x: %08x", s, *(uint32_t*)s);
-
+		LOGD(PTAG(""), "%x: %08x", s, *(uint32_t*)s);
 		s += 4;
 	}
 }

@@ -21,7 +21,7 @@ const int CrashMonitor::SIGNALS[] = { SIGABRT, SIGILL, SIGTRAP, SIGBUS, SIGFPE, 
 const char* CrashMonitor::TAG = PTAG("CrashMonitor");
 
 int CrashMonitor::sPID = 0;
-char CrashMonitor::sLogDir[80];
+char CrashMonitor::sLogDir[128];
 char CrashMonitor::sProcessName[60];
 char CrashMonitor::sThreadName[60];
 char CrashMonitor::sFingerprint[100];
@@ -79,7 +79,7 @@ int CrashMonitor::init(JNIEnv* env){
 
 void CrashMonitor::setLogDir(const char* dir){
 	strncpy(sLogDir, dir, sizeof(sLogDir));
-	LOGT(TAG,"setLogDir: %s", dir);
+	LOGR(TAG,"setLogDir: %s", sLogDir);
 }
 
 void CrashMonitor::initProcessInfo(){
@@ -122,7 +122,7 @@ void CrashMonitor::setSystemInfo(const char* fingerprint, int version, const cha
 	strncpy(sABIs, abis,sizeof(sABIs));
 	sVersion = version;
 
-	LOGE(TAG,"setSystemInfo: fingerprint: %s\n version: %d\n abis: %s", fingerprint, version, abis);
+	LOGR(TAG,"setSystemInfo: fingerprint: %s\n version: %d\n abis: %s", fingerprint, version, abis);
 }
 
 void CrashMonitor::handle(int sig, siginfo_t* si, void* uc){
@@ -134,6 +134,7 @@ void CrashMonitor::handle(int sig, siginfo_t* si, void* uc){
 	time(&rawtime);
 	timeinfo = localtime(&rawtime);
 
+	LOGE(TAG,"sLogDir: %s", sLogDir);
 	sprintf(sTEMP,"%s/%4d%02d%02d_%02d_%02d_%02d.crash", sLogDir, 
 						1900+timeinfo->tm_year, 1+timeinfo->tm_mon, timeinfo->tm_mday,
 						timeinfo->tm_hour,timeinfo->tm_min,timeinfo->tm_sec);
@@ -153,7 +154,6 @@ void CrashMonitor::handle(int sig, siginfo_t* si, void* uc){
 	UnwindNode* head = NULL;
 	und.unwind(&head);
 
-	LOGR(TAG,"backtrace:");
 	printBacktrace(fd, *head);
 
 #else
@@ -232,24 +232,36 @@ void CrashMonitor::printBacktrace(int fd, UnwindNode& head){
 		const char* symbol = NULL;
 		Dl_info info;
         if(dladdr(p->ip, &info) == 0){
-        	LOGE(TAG,"dladdr (0x%p) failed.", p->ip);
+        	// LOGE(TAG,"dladdr (0x%p) failed.", p->ip);
         	switch(sizeof(void*)){
 				case 4:
-				l = snprintf(sTEMP,sizeof(sTEMP),"\t#%02d pc 0x%08x\tunknow\n", i, p->pc);
+				l = snprintf(sTEMP,sizeof(sTEMP),"\t#%02d pc %08x  unknow\n", i, p->pc);
 				break;
 				case 8:
-				l = snprintf(sTEMP,sizeof(sTEMP),"\t#%02d pc 0x%016lx\tunknown\n", i, (unsigned long)p->pc);
+				l = snprintf(sTEMP,sizeof(sTEMP),"\t#%02d pc %016lx  unknown\n", i, (unsigned long)p->pc);
 				break;
 			}
         }else{
-        	switch(sizeof(void*)){
-				case 4:
-				l = snprintf(sTEMP,sizeof(sTEMP),"\t#%02d pc 0x%08x\t%s(%p)(%s)\n", i, p->pc, p->libname, p->libbase, info.dli_sname);
-				break;
-				case 8:
-				l = snprintf(sTEMP,sizeof(sTEMP),"\t#%02d pc 0x%016lx\t%s(%p)(%s)\n", i, (unsigned long)p->pc, p->libname, p->libbase, info.dli_sname);
-				break;
-			}
+        	if(info.dli_sname == NULL){
+				switch(sizeof(void*)){
+					case 4:
+					l = snprintf(sTEMP,sizeof(sTEMP),"\t#%02d pc %08x  %s\n", i, p->pc, p->libname);
+					break;
+					case 8:
+					l = snprintf(sTEMP,sizeof(sTEMP),"\t#%02d pc %016lx  %s\n", i, (unsigned long)p->pc, p->libname);
+					break;
+				}
+        	}else{
+        		switch(sizeof(void*)){
+					case 4:
+					l = snprintf(sTEMP,sizeof(sTEMP),"\t#%02d pc %08x  %s (%s+%u)\n", i, p->pc, p->libname, info.dli_sname, ((uint32_t)p->ip)-((uint32_t)info.dli_saddr));
+					break;
+					case 8:
+					l = snprintf(sTEMP,sizeof(sTEMP),"\t#%02d pc %016lx  %s (%s+%llu)\n", i, (unsigned long)p->pc, p->libname, info.dli_sname, ((uint64_t)p->ip)-((uint64_t)info.dli_saddr));
+					break;
+				}
+        	}
+        	
         }
 
         LOGE(TAG,"%s", sTEMP);

@@ -35,16 +35,11 @@ public:
 
 	void setucontext(ucontext_t *uc);
 	int unwind(UnwindNode** head);
-	
 
 	static void printNode(UnwindNode& node);
 	
 private:
 
-	static void printMem(word_t s,word_t t);
-
-
-private:
 	static const char* TAG;
 
 	Context* mContext;

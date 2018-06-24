@@ -43,6 +43,7 @@ public:
 	virtual word_t getReg(uint32_t reg);
 	virtual int restoreFrame();
 	virtual int stepBack(CFI& cfi);
+	void adjustIP(word_t& ip);
 	
 	static int callback (struct dl_phdr_info *info, size_t size, void *ptr);
 	
