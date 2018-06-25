@@ -20,7 +20,7 @@
 
 # Unwind Native Call Stack
 	
-  When gcc generates code that handles exceptions, it produces tables that describe how to unwind the stack. These tables are found in the .eh_frame section; Read https://refspecs.linuxfoundation.org/LSB_3.0.0/LSB-Embedded/LSB-Embedded/ehframechpt.html for details of .eh_frame format. The definition of Call Frame Instructions in FDE can be found in DWARF(Debugging With Attributed Record Formats) specification , you can download here: http://dwarfstd.org
+  When gcc generates code that handles exceptions, it produces tables that describe how to unwind the stack. These tables are found in the .eh_frame section; Read https://refspecs.linuxfoundation.org/LSB_3.0.0/LSB-Embedded/LSB-Embedded/ehframechpt.html for details of .eh_frame format. The definition of Call Frame Instructions in FDE can be found in DWARF(Debugging With Attributed Record Formats) specification , you can download it here: http://dwarfstd.org
 
   The process of unwinding can be describe as below:
   1. Get IP(instruction pointer) where program crashed(by parsing the third parameter of sa_handler);
@@ -31,4 +31,4 @@
 
   In step 1, we maybe get a wrong crash IP if the crash is caused by wrong instruction pointer. In this case there are no library corresponded to the wrong IP, we need try to unwind this frame by calling convention;
 
-  However, .eh_frame section not always exist, For ARM, a section .ARM.exidx is exist similar to .eh_frame, So if unwind with eh_frame failed we can try .ARM.exidx; For more information of EXIDX , look here: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0038b/IHI0038B_ehabi.pdf
+  Unfortunately, .eh_frame section not always exist, For ARM, a section .ARM.exidx exist and it is similar to .eh_frame. So, if unwind with eh_frame failed we can try .ARM.exidx; For more information of EXIDX , look here: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0038b/IHI0038B_ehabi.pdf
