@@ -1,7 +1,0 @@
-1. get ip(instruction pointer) where program crashed.
-2. search all lib in loaded in current process, using dl_iterate_phdr, find the target lib in which the ip located.
-3. find exactly which FDE in which the ip located, and restore call frame by CIE&FDE instructions.
-4. after restoring call frame we can find the return address.
-5. the return address is in the caller, so we unwind the caller stack with the return address.
-
-

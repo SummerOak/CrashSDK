@@ -3,7 +3,7 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_MODULE    := crashsdk
 
-#compile with c++ force
+#compile with c++
 LOCAL_CFLAGS := -std=c++11
 
 NDK_APP_DST_DIR := ../../libs/$(TARGET_ARCH_ABI)
