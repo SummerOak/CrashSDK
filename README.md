@@ -29,6 +29,6 @@
   4. After restoring call frame we can get the return address and CFA(call frame address) of previous call frame;
   5. With the return address and CFA we unwind the previous call frame, and unwind recursivly until reach the root(CFA&IP no more change);
 
-  In step 1, we maybe get a wrong crash IP if the crash is caused by wrong instruction pointer. In this case there are no library corresponded to the wrong IP, we need try to unwind this frame by calling convention;
+  In step 1, we may get a wrong crash IP if the crash is caused by wrong instruction pointer. In this case there are no library corresponded to the wrong IP, we need try to unwind this frame by calling convention;
 
   Unfortunately, .eh_frame section not always exist, For ARM, a section .ARM.exidx exist and it is similar to .eh_frame. So, if unwind with eh_frame failed we can try .ARM.exidx; For more information of EXIDX , look here: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0038b/IHI0038B_ehabi.pdf
