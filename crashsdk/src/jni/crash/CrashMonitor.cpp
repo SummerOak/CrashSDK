@@ -26,7 +26,7 @@ char CrashMonitor::sProcessName[60];
 char CrashMonitor::sThreadName[60];
 char CrashMonitor::sFingerprint[100];
 int CrashMonitor::sVersion = 0;
-char CrashMonitor::sABIs[20];
+char CrashMonitor::sABIs[50];
 char CrashMonitor::sTEMP[512];
 
 int CrashMonitor::init(JNIEnv* env){
@@ -118,8 +118,10 @@ int CrashMonitor::readline(const char* file, char* out, int len){
 }
 
 void CrashMonitor::setSystemInfo(const char* fingerprint, int version, const char* abis){
-	strncpy(sFingerprint, fingerprint,sizeof(sFingerprint));
-	strncpy(sABIs, abis,sizeof(sABIs));
+	strncpy(sFingerprint, fingerprint,sizeof(sFingerprint) - 1);
+	strncpy(sABIs, abis,sizeof(sABIs) - 1);
+	sFingerprint[sizeof(sFingerprint)-1] = '\0';
+	sABIs[sizeof(sABIs)-1] = '\0';
 	sVersion = version;
 
 	LOGR(TAG,"setSystemInfo: fingerprint: %s\n version: %d\n abis: %s", fingerprint, version, abis);
@@ -180,7 +182,8 @@ void CrashMonitor::handle(int sig, siginfo_t* si, void* uc){
 void CrashMonitor::logCrashHeader(int fd, siginfo* siginfo){
 	int len = 0;
 	int r = sizeof(sTEMP);
-	int l = snprintf(sTEMP,r,"*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***\n"
+	int l = snprintf(sTEMP,r, 
+		"*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***\n"
 		"Build fingerprint: \'%s\'\n"
 		"Revision: %d\n"
 		"ABI: \'%s\'\n", sFingerprint, sVersion, sABIs);
