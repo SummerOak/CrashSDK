@@ -1,22 +1,18 @@
 # What it for
 
-  Catch crash in Java & Native(arm/x86), and dump crash information to a file locate in sdcard, crash information contains call stack, system version, architecture, and registers state for native crash.
+  Catch crashes in Java & Native(arm/x86), and dump crash information to a file locate in sdcard, crash information includes call stack, system version, architecture, and registers state for native crash.
   
 # Structure of this project
   
   This is an Android project create by Android studio, the module 'crashsdk' is an aar lib and that is what we need implememt&optimize; 
   
-  The c++ part of module 'crashsdk' is not associate with android studio, so it must be build manually, cd to jni directory and type command 'ndk-build'
+  The c++ part of module 'crashsdk' is not configured in gradle, so you need build it manually, cd to jni directory and type command 'ndk-build'.
 
 # Implementation
 
-  1. For crash in Java, use Thread#setDefaultUncaughtExceptionHandler to catch crash; 
+  1. For crash in Java, Thread#setDefaultUncaughtExceptionHandler is a good api to catch crash; 
   
-  2. For crash in Native, we register a signal handler to handle signals such as SIGSEGV; In our handler, we need do:
-    1) Get registers state while crash raise;
-    2) Unwind call stack;
-    3) Dump crash information;
-    Since we are do these in a signal handler, we should take signal safety into consideration. 
+  2. For crash in Native, we need a signal handler to get a chance to handle signals such as SIGSEGV; In handle, we unwind the call stack and dump infomations we interest. Since we are doing these in a signal handler, we should take signal safety into consideration. 
 
 # Unwind Native Call Stack
 	
