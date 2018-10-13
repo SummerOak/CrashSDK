@@ -26,7 +26,7 @@ public:
 	static int init(JNIEnv* env);
 	static void setLogDir(const char* dir);
 	static void setSystemInfo(const char* fingerprint, int version, const char* abis);
-	
+	static void setVM(JavaVM* vm);
 
 private:
 	static void initProcessInfo();
@@ -37,7 +37,18 @@ private:
 
 	static void printBacktrace(int fd, UnwindNode& head);
 
+	
+	static JNIEnv* getEnv();
+	static void initJniBridge(JNIEnv* env);
+	static uint64_t getNativeHeapAllocatedSize();
+	static uint64_t getNativeHeapSize();
+
 	static struct sigaction sOldSigAction;
+
+	static JavaVM* sVM;
+	static jclass sClzDebug;
+	static jmethodID sMidGetNativeHeapSize;
+	static jmethodID sMidGetNativeHeapAllocatedSize;
 
 	static const int SIGNALS[];
 	static const char* TAG;

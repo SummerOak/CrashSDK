@@ -37,6 +37,13 @@ Java_com_summer_crashsdk_CrashSDK_setLogDir(JNIEnv *env,jobject obj, jstring dir
 	env->ReleaseStringUTFChars(dir,szDir);
 }
 
+jint JNI_OnLoad(JavaVM *vm, void *reserved) 
+{
+	LOGR(PTAG(),"jni onload...");
+	CrashMonitor::setVM(vm);
+	return JNI_VERSION_1_6;
+}
+
 #ifdef __cplusplus
 }
 #endif

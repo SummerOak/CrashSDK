@@ -10,6 +10,41 @@ int Exidx::restoreFrame(Context& context){
 
 	LOGD(TAG,"restoreFrame ip=0x%x",cfi.ip);
 
+#ifdef __arm__
+	word_t ip = cfi.ip;
+	int pcount = 0;
+	 _Unwind_Ptr exidxBase =  dl_unwind_find_exidx(ip, &pcount);
+	 LOGE(TAG, "find exidx ip 0x%x , exidx base = 0x%x, pcount %d", ip, exidxBase, pcount);
+	 if(exidxBase != 0){
+	 	cfi.exidx_table_start = exidxBase;
+	 	cfi.exidx_table_end = cfi.exidx_table_start + (pcount<<3);
+	 	if(retriveEntry(context, cfi.exidx_table_start, cfi.exidx_table_end) != 0){
+			LOGE(TAG, "retrive exidx entry failed.");
+			return 2;
+		}
+
+		LOGD(TAG,"find exidx section success, ip(0x%x - 0x%x), exidx(0x%x - 0x%x)", 
+	    		cfi.start_ip, cfi.end_ip, cfi.exidx_table_start, cfi.exidx_table_end);
+
+		uint8_t instr[32];
+		int instrLen = readUnwindInstr(context, cfi.exidx_entry, instr);
+		if(instrLen <= 0){
+			LOGE(TAG,"read instr failed.");
+			return 1;
+		}
+
+		if(runExidxInstr(instr, instrLen, cfi) != 0){
+			LOGE(TAG,"run exidx instr failed.");
+			return 1;
+		}
+
+		return 0;
+
+	 }else{
+	 	LOGE(TAG, "exidxBase not found");
+	 }
+#else
+
 	int ret = dl_iterate_phdr (Exidx::checklib, &context);
 	if(ret == 1){
 
@@ -34,8 +69,11 @@ int Exidx::restoreFrame(Context& context){
 	}else{
 		LOGE(TAG,"restoreFrame(0x%lx) failed.", (long)cfi.ip);
 	}
+	
+#endif
 
 	return 1;
+
 }
 
 int Exidx::checklib (struct dl_phdr_info *info, size_t size, void *ptr){

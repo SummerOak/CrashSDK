@@ -10,6 +10,11 @@
 #include <fcntl.h>
 #include <time.h>
 
+JavaVM* CrashMonitor::sVM = NULL;
+jclass CrashMonitor::sClzDebug = 0;
+jmethodID CrashMonitor::sMidGetNativeHeapSize = 0;
+jmethodID CrashMonitor::sMidGetNativeHeapAllocatedSize = 0;
+
 struct sigaction CrashMonitor::sOldSigAction;
 const int CrashMonitor::SIGNALS[] = { SIGABRT, SIGILL, SIGTRAP, SIGBUS, SIGFPE, SIGSEGV, SIGTERM, SIGPIPE, 
 
@@ -71,6 +76,7 @@ int CrashMonitor::init(JNIEnv* env){
 	}
 
 	initProcessInfo();
+	initJniBridge(env);
 
     LOGD(TAG,"init crash monitor successed.");
 	
@@ -204,6 +210,8 @@ void CrashMonitor::logCrashHeader(int fd, siginfo* siginfo){
 		len += l; r -= l;
 	}
 
+
+
 	if((l = parseSignalInfo(siginfo, sTEMP + len, r)) > 0){
 		len += l; r -= l;
 		snprintf(sTEMP+len, r, "\n");
@@ -257,10 +265,10 @@ void CrashMonitor::printBacktrace(int fd, UnwindNode& head){
         	}else{
         		switch(sizeof(void*)){
 					case 4:
-					l = snprintf(sTEMP,sizeof(sTEMP),"\t#%02d pc %08x  %s (%s+%u)\n", i, p->pc, p->libname, info.dli_sname, ((uint32_t)p->ip)-((uint32_t)info.dli_saddr));
+					l = snprintf(sTEMP,sizeof(sTEMP),"\t#%02d pc %08x  %s (%s+%u)\n", i, (word_t)((word_t)p->ip - (word_t)info.dli_fbase), info.dli_fname, info.dli_sname, ((uint32_t)p->ip)-((uint32_t)info.dli_saddr));
 					break;
 					case 8:
-					l = snprintf(sTEMP,sizeof(sTEMP),"\t#%02d pc %016lx  %s (%s+%llu)\n", i, (unsigned long)p->pc, p->libname, info.dli_sname, ((uint64_t)p->ip)-((uint64_t)info.dli_saddr));
+					l = snprintf(sTEMP,sizeof(sTEMP),"\t#%02d pc %016lx  %s (%s+%llu)\n", i, (unsigned long)((unsigned long)p->ip-(unsigned long)info.dli_fbase), info.dli_fname, info.dli_sname, ((uint64_t)p->ip)-((uint64_t)info.dli_saddr));
 					break;
 				}
         	}
@@ -319,5 +327,76 @@ const int CrashMonitor::parseSignalInfo(siginfo_t* siginfo, char* out, int len){
 	}
 
 	return 0;
+}
+
+void CrashMonitor::initJniBridge(JNIEnv* env){
+ 	jclass clz = env->FindClass("android/os/Debug");
+ 	if(clz != NULL){
+ 		sClzDebug = (jclass)env->NewGlobalRef(clz);
+ 	}
+
+ 	sMidGetNativeHeapSize = env->GetStaticMethodID(sClzDebug, "getNativeHeapSize", "()J");
+ 	sMidGetNativeHeapAllocatedSize = env->GetStaticMethodID(sClzDebug, "getNativeHeapAllocatedSize", "()J");
+}
+
+void CrashMonitor::setVM(JavaVM* vm){
+	sVM = vm;
+	return;
+}
+
+JNIEnv* CrashMonitor::getEnv(){
+	JNIEnv* env = NULL;
+    int state = sVM->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6);
+    if (state == JNI_EDETACHED || env == NULL) {
+        LOGD(TAG,"getEnv, env not attached yet");
+        if (sVM->AttachCurrentThread(&env, NULL) != JNI_OK) {
+        	LOGE(TAG,"getEnv, attach env to current thread failed.");
+            return NULL;
+        }
+    } else if (state == JNI_OK) {
+        LOGD(TAG,"getEnv, env already attached.");
+    } else if (state == JNI_EVERSION) {
+    	LOGE(TAG,"getEnv, jni version not supported");
+    	return NULL;
+    }
+
+    return env;
+}
+
+uint64_t CrashMonitor::getNativeHeapAllocatedSize(){
+	JNIEnv* env = getEnv();
+	if(env != NULL){
+		if(sMidGetNativeHeapAllocatedSize != 0){
+	    	uint64_t ret = env->CallStaticLongMethod(sClzDebug, sMidGetNativeHeapAllocatedSize);
+	    	jthrowable ex = (env)->ExceptionOccurred();
+		    if (ex) {
+		        env->ExceptionDescribe();
+		        env->ExceptionClear();
+		        env->DeleteLocalRef(ex);
+		    }
+
+	    	return ret;
+	    }
+	}
+    
+    return 0L;
+}
+
+uint64_t CrashMonitor::getNativeHeapSize(){
+	JNIEnv* env = getEnv();
+	if(env != NULL){
+		if(sMidGetNativeHeapSize != 0){
+	    	uint64_t ret = env->CallStaticLongMethod(sClzDebug, sMidGetNativeHeapSize);
+	    	jthrowable ex = (env)->ExceptionOccurred();
+		    if (ex) {
+		        env->ExceptionDescribe();
+		        env->ExceptionClear();
+		        env->DeleteLocalRef(ex);
+		    }
+	    	return ret;
+	    }
+	}
+    
+    return 0L;
 }
 

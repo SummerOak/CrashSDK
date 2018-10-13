@@ -1,7 +1,7 @@
 #include "Context_arm.h"
 #include "Log.h"
 #include "Utils.h"
-#include "EHFrame.h"
+// #include "EHFrame.h"
 #include <asm/sigcontext.h>
 
 const char* Context_arm::TAG = PTAG("Context_arm");
@@ -100,8 +100,8 @@ int Context_arm::restoreFrame(){
 	word_t ip = mCfi.ip;
 	word_t cfa = mCfi.cfa;
 
-	if((ret = EHFrame::restoreFrame(*this)) != 0){
-		LOGE(TAG,"eh_frame parse failed.");
+	// if((ret = EHFrame::restoreFrame(*this)) != 0){
+		// LOGE(TAG,"eh_frame parse failed.");
 
 		if((ret = Exidx::restoreFrame(*this)) != 0){
 			LOGE(TAG,"restoreFrame(0x%lx) from exidx failed, try call routine.", (long)mCfi.ip);
@@ -110,7 +110,7 @@ int Context_arm::restoreFrame(){
 				return ret;
 			}
 		}
-	}
+	// }
 
 	adjustIP(mCfi.ip);
 

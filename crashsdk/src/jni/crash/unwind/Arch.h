@@ -1,7 +1,6 @@
 #ifndef Unwind_arch_h
 #define Unwind_arch_h
 
-
 #if defined __aarch64__
 #define ARCH_NAME "__aarch64__"
 #elif defined __arm__
