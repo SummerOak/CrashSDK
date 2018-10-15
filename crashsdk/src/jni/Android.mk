@@ -1,7 +1,12 @@
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
-LOCAL_MODULE    := crashsdk
+
+ifeq ($(TARGET_PLATFORM), android-14)
+    LOCAL_MODULE    := crashsdk
+else
+	LOCAL_MODULE    := crashsdk21
+endif
 
 #compile with c++
 LOCAL_CFLAGS := -std=c++11
@@ -33,6 +38,11 @@ ifneq (,$(filter $(TARGET_ARCH_ABI),armeabi-v7a))
 	LOCAL_C_INCLUDES += $(LOCAL_PATH)/crash/unwind/arm
 	MY_SRC_LIST += $(wildcard $(LOCAL_PATH)/crash/unwind/*.cpp)
 	MY_SRC_LIST += $(wildcard $(LOCAL_PATH)/crash/unwind/arm/*.cpp)
+	
+	ifneq ($(TARGET_PLATFORM), android-14)
+    	MY_SRC_LIST += $(wildcard $(LOCAL_PATH)/crash/unwind/eh_frame/*.cpp)
+	endif
+	
 endif
 
 

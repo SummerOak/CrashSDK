@@ -1,7 +1,9 @@
 #include "Context_arm.h"
 #include "Log.h"
 #include "Utils.h"
-// #include "EHFrame.h"
+#if __ANDROID_API__ >= 21
+#include "EHFrame.h"
+#endif
 #include <asm/sigcontext.h>
 
 const char* Context_arm::TAG = PTAG("Context_arm");
@@ -95,22 +97,24 @@ int Context_arm::restoreFrame(){
 	}
 
 	LOGD(TAG,"restoreFrame ip(0x%lx)", (long)mCfi.ip);
-	int ret = 0;
+	int ret = 1;
 
 	word_t ip = mCfi.ip;
 	word_t cfa = mCfi.cfa;
 
-	// if((ret = EHFrame::restoreFrame(*this)) != 0){
-		// LOGE(TAG,"eh_frame parse failed.");
+#if __ANDROID_API__ >= 21
+	if((ret = EHFrame::restoreFrame(*this)) != 0){
+		LOGE(TAG,"eh_frame parse failed.");
+	}
+#endif
 
-		if((ret = Exidx::restoreFrame(*this)) != 0){
-			LOGE(TAG,"restoreFrame(0x%lx) from exidx failed, try call routine.", (long)mCfi.ip);
-			if((ret = stepBack(mCfi)) != 0){
-				LOGE(TAG,"try call routine failed.");
-				return ret;
-			}
+	if(ret != 0 && (ret = Exidx::restoreFrame(*this)) != 0){
+		LOGE(TAG,"restoreFrame(0x%lx) from exidx failed, try call routine.", (long)mCfi.ip);
+		if((ret = stepBack(mCfi)) != 0){
+			LOGE(TAG,"try call routine failed.");
+			return ret;
 		}
-	// }
+	}
 
 	adjustIP(mCfi.ip);
 

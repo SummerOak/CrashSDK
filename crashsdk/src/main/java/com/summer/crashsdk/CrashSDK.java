@@ -30,7 +30,10 @@ public final class CrashSDK {
      * @return 0 on success, otherwise failed.
      */
     public static final int init(Context context){
-        System.loadLibrary("crashsdk");
+
+        if(!loadLib()){
+            return 1;
+        }
 
         StringBuilder abi = new StringBuilder();
 
@@ -72,6 +75,22 @@ public final class CrashSDK {
         initJavaCrashHandler();
 
         return initNative();
+    }
+
+    private static boolean loadLib(){
+        try {
+            System.loadLibrary("crashsdk21");
+        }catch (Throwable t){
+            t.printStackTrace();
+            try {
+                System.loadLibrary("crashsdk");
+            }catch (Throwable t2){
+                t2.printStackTrace();
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public static boolean initJavaCrashHandler(){
